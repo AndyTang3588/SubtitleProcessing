@@ -28,49 +28,6 @@
 
 ---
 
-## 项目结构
-
-```
-SubtitleProcessing/
-├── 01_文本转字幕/          # 第1步：将文本格式转换为LRC/SRT/midform格式
-│   ├── 1txt2lrc_v2.py     # 文本转LRC格式（v2版本）
-│   ├── 1txt2lrc_v3.py     # 文本转LRC格式（v3版本，支持小时进位）
-│   ├── 1txt2lrc&srt.py    # 文本同时转换为LRC和SRT格式
-│   ├── 1json2lrc.py       # JSON格式转LRC格式
-│   ├── 1json2srt.py       # JSON格式转SRT格式
-│   ├── 1json2lrc&srt.py   # JSON格式同时转换为LRC和SRT格式
-│   └── 1json2midform.py   # JSON格式转midform格式
-├── 02_去重处理/            # 第2步：去重处理
-│   ├── 2去重.py           # 基础去重功能
-│   ├── 2去重v2.py         # 改进的去重算法
-│   ├── 2去重v3.py         # 高级去重功能（支持正则表达式过滤）
-│   ├── 2去重srt.py        # SRT格式去重功能
-│   └── 2去重midform.py    # midform格式去重功能
-├── 03_时间调整/            # 第3步：时间轴调整
-│   ├── 3延时.py           # LRC格式时间轴延时调整工具
-│   ├── 3延时srt.py        # SRT格式时间轴延时调整工具
-│   └── 3延迟midform.py    # midform格式时间轴延时调整工具
-├── 04_格式转换/            # 格式转换工具
-│   ├── lrc转srt.py        # LRC格式转SRT格式
-│   ├── lrc转srt_v2.py     # LRC转SRT（v2版本，带备份功能）
-│   ├── srt2lrc.py         # SRT格式转LRC格式
-│   ├── midform2srt.py     # midform格式转SRT格式
-│   └── midform2lrc.py     # midform格式转LRC格式
-├── 05_格式还原/            # 格式还原工具
-│   └── 重返朴素格式.py     # 将LRC格式还原为朴素文本格式
-├── cache/                 # 临时文件目录（自动创建）
-├── launcher.py            # 图形界面启动器
-└── README.md              # 项目说明文档
-```
-
-## 工作流程（详细说明）
-1. 将原视频/音频转为 mp3（更省 token，更稳定）。
-2. 在 Groq 平台使用 Whisper（v3 / v3 turbo）转写，点击“copy json”保存为 `xxx.json`。
-3. 在 Launcher 选择 `xxx.json`，运行步骤 01 → 02 → 03（03 为可选延时）。
-4. （可选）到 `/cache/` 用 `ai_prompt_midform.txt` 引导大模型翻译 `output2.midform` 或 `output3.midform`，将结果粘回保存。
-5. 在“格式转换”中选择脚本将 midform 转为 `.lrc` 或 `.srt`。
-6. 点击“生成转换结果”，拷贝到输出目录。
-
 ## 文件说明
 
 ### 输入格式示例
@@ -98,7 +55,7 @@ SubtitleProcessing/
     "id": 1,
     "start": 2.24,
     "end": 4.94,
-    "text": "这里是卫星俱乐部"
+    "text": "这里是FuLu万事屋"
   }
 ]
 ```
