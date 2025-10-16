@@ -2,6 +2,32 @@
 
 这是一个用于处理字幕文件的Python工具集，支持多种字幕格式之间的转换和处理。
 
+## Launcher 启动方法（macOS & Linux / Windows）
+- macOS & Linux：
+  - 安装 Python3 后，在项目根目录执行：
+    - `python3 launcher.py`
+- Windows：
+  - 安装 Python3 后，在项目根目录执行：
+    - `py -3 launcher.py`
+  - 或者直接双击运行 `launcher.py`（系统已关联 .py 到 Python 的情况下）
+
+## 软件使用方法（推荐流程）
+1. 准备音频：将“生肉”视频/音频转换为体积较小的 mp3，用于喂给 OpenAI Whisper（推荐 Groq 平台，模型 v3 / v3 turbo；Groq 有免费试用，够日常使用）。
+2. 得到 JSON：在 Groq 的 Whisper 结果页面点击“copy json”，复制结果为 `xxx.json` 并保存。
+   - 注：不建议使用 txt，txt 需要手动在网页上框选复制，容易出现格式/换行丢失。
+3. 导入 JSON 到本工具：在 Launcher 中选择 `xxx.json` 文件，按需依次点击步骤 01、02、03：
+   - 步骤 01：文本转字幕（选择 `1json2midform.py（最新）`）。
+   - 步骤 02：去重处理（选择 `2去重midform.py（最新）`）。
+   - 步骤 03：时间调整（可选，填入毫秒延迟，自动处理小时标记）。
+4. 可选AI翻译（推荐）：
+   - 打开 `/cache/` 目录，将刚生成的 `.midform` 文件（推荐使用 `output2.midform` 或 `output3.midform`）丢给 AI 翻译。
+   - 使用 `ai_prompt_midform.txt` 作为提示词，让模型只翻译文本部分，保持时间与结构不变。
+   - 将 AI 的回复覆盖粘贴回对应 `.midform` 文件并保存。
+5. 格式转换：在 Launcher 的“格式转换”中选择脚本（`midform2lrc.py` 或 `midform2srt.py`），生成对应的 `.lrc` 或 `.srt`。
+6. 生成最终文件：点击窗口底部“生成转换结果”，工具会将 cache 中最新优先级的输出复制到 `output/` 或原目录。
+
+---
+
 ## 项目结构
 
 ```
@@ -37,32 +63,13 @@ SubtitleProcessing/
 └── README.md              # 项目说明文档
 ```
 
-## 工作流程
-
-### 标准处理流程
-1. **文本转字幕** (`01_文本转字幕/`)
-   - 输入：`input.txt`（包含时间戳和字幕文本）
-   - 输出：`output1.lrc` 或 `output1.srt`
-
-2. **去重处理** (`02_去重处理/`)
-   - 输入：`output1.lrc`
-   - 输出：`output2.lrc`
-   - 功能：去除重复内容、字符重复、特定模式
-
-3. **时间调整** (`03_时间调整/`)
-   - 输入：`output2.lrc`
-   - 输出：`output3.lrc`
-   - 功能：调整时间轴偏移
-
-4. **格式转换** (`04_格式转换/`)
-   - 输入：`output3.lrc`
-   - 输出：`output3.srt`
-   - 功能：LRC与SRT格式互转
-
-5. **格式还原** (`05_格式还原/`)
-   - 输入：`output3.lrc`
-   - 输出：`output3朴素.txt`
-   - 功能：还原为原始文本格式
+## 工作流程（详细说明）
+1. 将原视频/音频转为 mp3（更省 token，更稳定）。
+2. 在 Groq 平台使用 Whisper（v3 / v3 turbo）转写，点击“copy json”保存为 `xxx.json`。
+3. 在 Launcher 选择 `xxx.json`，运行步骤 01 → 02 → 03（03 为可选延时）。
+4. （可选）到 `/cache/` 用 `ai_prompt_midform.txt` 引导大模型翻译 `output2.midform` 或 `output3.midform`，将结果粘回保存。
+5. 在“格式转换”中选择脚本将 midform 转为 `.lrc` 或 `.srt`。
+6. 点击“生成转换结果”，拷贝到输出目录。
 
 ## 文件说明
 
@@ -99,26 +106,13 @@ SubtitleProcessing/
 ### 输出格式
 - **LRC格式**：`[mm:ss.xx] 字幕内容`
 - **SRT格式**：标准SRT字幕格式
-- **midform格式**：`[hh:mm:ss.mmm - hh:mm:ss.mmm] 字幕内容`
+- **midform格式**：无前中括号、压缩小时：
+  - 注释（前两行，必须保留）：
+    - `// A middle format for an APP about translation between .lrc & .srt file. It compresses the HH (hour) part of the timestamp.`
+    - `// The hour sign [ADD X H] can't be ignored. If a timestamp crosses an hour sign, it will stay before the sign.`
+  - 小时标记：`[ADD X H]`
+  - 时间行：`mm:ss.mmm-mm:ss.mmm]文本`（必要时也可出现显式小时 `HH:mm:ss.mmm`）
 - **朴素格式**：`hh:mm:sss\n字幕内容`
-
-## 使用方法
-
-### 方法一：使用Launcher界面（推荐）
-
-1. 运行 `python3 launcher.py` 启动图形界面
-2. 点击"浏览"按钮选择输入的txt或json文件
-3. 在界面中选择各步骤的版本（默认使用最新版本）
-4. 对于步骤03，可以设置延时毫秒数（默认0）
-5. 按顺序点击各步骤的"运行"按钮
-6. 查看状态显示：Success（绿色）、Warning（黄色）、Error（红色）
-7. 点击"生成转换结果"按钮获取最终文件
-
-### 方法二：命令行方式
-
-1. 将原始字幕文本保存为 `input.txt`
-2. 按顺序运行各步骤的脚本
-3. 根据需要选择合适的版本（v2、v3等）
 
 ## Launcher界面说明
 
@@ -148,10 +142,15 @@ SubtitleProcessing/
 - **midform2lrc.py**：将midform格式转换为LRC格式
 
 ### midform格式特点
-- 时间格式：`[hh:mm:ss.mmm - hh:mm:ss.mmm]`
-- 包含开始时间和结束时间
+- 时间行：`mm:ss.mmm-mm:ss.mmm]文本`（无前中括号，小时压缩）
+- 小时标记：`[ADD X H]` 指示后续行所属绝对小时
+- 注释：前两行以 `//` 开头，工具链保持并忽略
 - 毫秒级精度（3位毫秒）
-- 适合需要精确时间控制的应用场景
+
+## AI 提示词
+- 提示词文件：`ai_prompt_midform.txt`
+- 作用：用于引导大语言模型在不改变 midform 结构与时间轴的前提下，进行“二次元可爱风格”的中文字幕翻译，并在 R18 情境下使用更委婉的词汇规避审查。
+- 使用方式：将 `ai_prompt_midform.txt` 的内容作为系统/前置提示，与待翻译的 midform 文本一并输入模型。
 
 ## 注意事项
 
