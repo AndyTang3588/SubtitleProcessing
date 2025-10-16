@@ -1,6 +1,6 @@
 import re
 
-def remove_duplicates_from_lrc(input_file, output_file):
+def remove_duplicates_from_midform(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
@@ -24,12 +24,12 @@ def remove_duplicates_from_lrc(input_file, output_file):
         if not line:  # 跳过空行
             continue
 
-        # 匹配时间戳
-        time_pattern = r'^\[(\d{1,2}):(\d{2})\.(\d{2})\]|\[(\d{1,2}):(\d{2}):(\d{2})\.(\d{2})\]'
+        # 匹配midform时间戳格式 [hh:mm:ss.mmm - hh:mm:ss.mmm]
+        time_pattern = r'^\[(\d{1,2}):(\d{2}):(\d{2})\.(\d{3})\s*-\s*(\d{1,2}):(\d{2}):(\d{2})\.(\d{3})\]'
         match = re.match(time_pattern, line)
 
         if match:
-            # 提取时间戳
+            # 提取时间戳部分
             time_stamp = line[:line.index(']') + 1]
             content = line[line.index(']') + 1:].strip()
 
@@ -50,7 +50,6 @@ def remove_duplicates_from_lrc(input_file, output_file):
             if clean_content(last_content) == cleaned_content:
                 continue  # 如果清理后的内容与上一行相同，跳过
 
-
             # 规则4：如果最后一个字符是中文逗号句号，删除句号
             if content.endswith('。'):
                 content = content[:-1]  # 删除最后的句号
@@ -60,12 +59,12 @@ def remove_duplicates_from_lrc(input_file, output_file):
             last_content = content  # 更新上一行内容
             processed_lines.append(f"{time_stamp} {content}")  # 添加原始内容
 
-    # 写入到 output2.lrc 文件
+    # 写入到 output2.midform 文件
     with open(output_file, 'w', encoding='utf-8') as f:
         for processed_line in processed_lines:
             f.write(processed_line + "\n")
 
 # 使用函数处理文件
-remove_duplicates_from_lrc('output1.lrc', 'output2.lrc')
+remove_duplicates_from_midform('cache/output1.midform', 'cache/output2.midform')
 
-print("处理完成，生成了 output2.lrc 文件。")
+print("处理完成，生成了 cache/output2.midform 文件。")

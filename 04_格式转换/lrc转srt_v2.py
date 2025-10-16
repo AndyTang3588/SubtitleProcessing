@@ -36,7 +36,7 @@ def convert_to_srt_time(time_str):
 def backup_file(original_file, backup_prefix='备份_转srt_', extension='.lrc'):
     counter = 1
     while True:
-        backup_filename = f"{backup_prefix}{counter:02}{extension}"
+        backup_filename = f"cache/{backup_prefix}{counter:02}{extension}"
         if not os.path.exists(backup_filename):
             try:
                 shutil.copyfile(original_file, backup_filename)
@@ -49,7 +49,7 @@ def backup_file(original_file, backup_prefix='备份_转srt_', extension='.lrc')
 
 # 主程序
 def main():
-    original_lrc = 'output3.lrc'
+    original_lrc = 'cache/output3.lrc'
 
     # 创建备份
     if os.path.exists(original_lrc):
@@ -128,9 +128,9 @@ def main():
 
     # 保存修改后的 SRT 文件
     try:
-        with open('output3.srt', 'w', encoding='utf-8') as f:
+        with open('cache/output3.srt', 'w', encoding='utf-8') as f:
             f.write("\n".join(srt_lines))
-        print("处理完成，生成了 output3.srt 文件。")
+        print("处理完成，生成了 cache/output3.srt 文件。")
     except Exception as e:
         print(f"SRT 文件保存失败: {e}")
         exit(1)

@@ -36,8 +36,8 @@ def seconds_to_srt_time(seconds):
     s = seconds % 60
     return f"{h:02}:{m:02}:{s:02},000"
 
-# 从 input.txt 文件中读取字幕
-input_data = read_input_file('input.txt')
+# 从 cache/input.txt 文件中读取字幕
+input_data = read_input_file('cache/input.txt')
 
 # 用正则表达式匹配时间和字幕
 pattern = re.compile(r'(\d{2}:\d{2}:\d{2}s)\s*\n([\s\S]+?)(?=\d{2}:\d{2}:\d{2}s|$)', re.DOTALL)
@@ -49,7 +49,7 @@ for time_str, subtitle in matches:
     lrc_time = convert_to_lrc_time(time_str)
     lrc_lines.append(f"{lrc_time} {subtitle.strip()}")  # 添加空格以分隔时间和字幕
 
-with open('output1.lrc', 'w', encoding='utf-8') as f:
+with open('cache/output1.lrc', 'w', encoding='utf-8') as f:
     f.write("\n".join(lrc_lines))
 
 # 生成SRT格式，处理每句字幕大于 DEFAULT_DURATION 秒的情况
@@ -83,7 +83,7 @@ for i, (time_str, subtitle) in enumerate(matches, 1):
     srt_lines.append("")  # 空行
 
 # 保存修改后的 SRT 文件
-with open('output1.srt', 'w', encoding='utf-8') as f:
+with open('cache/output1.srt', 'w', encoding='utf-8') as f:
     f.write("\n".join(srt_lines))
 
-print("处理完成，生成了 output1.lrc 和 output1.srt 文件。")
+print("处理完成，生成了 cache/output1.lrc 和 cache/output1.srt 文件。")

@@ -1,0 +1,27 @@
+# Cache directory for temporary files
+cache/
+
+# Output directory for generated files
+output/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Output files (optional - you may want to track these)
+*.lrc
+*.srt
+output*.txt
