@@ -1,3 +1,11 @@
-[00:00:00.000 - 00:00:02.000] 二人
-[00:00:04.000 - 00:00:06.000] お邪魔します
-[00:00:10.000 - 00:00:16.000] 大変だったみたいだね
+// A middle format for an APP about translation between .lrc & .srt file. It compresses the HH (hour) part of the timestamp.
+// The hour sign [ADD X H] can't be ignored. If a timestamp crosses an hour sign, it will stay before the sign.
+00:01.043-00:03.020]一段字幕
+36:04.000-38:06.140]大概安静了三十分钟
+59:10.000-59:16.000]马上就一个小时了...
+[ADD 1 H]
+01:02.366-01:03.114]过了一分钟
+59:54.120-00:11.025]这句话很长，持续了好几秒，跨越了小时标记，但是依旧在标记之前
+[ADD 2 H]
+12:04.000-12:07.140]总共两个多小时的音频结束在这了
+13:22.531-13:03.533]拜拜～

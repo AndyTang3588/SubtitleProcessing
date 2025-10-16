@@ -1,18 +1,17 @@
 import json
 import re
 
-# 辅助函数：将秒数转为 'hh:mm:ss.mmm' 格式（midform格式）
-def seconds_to_midform_time(seconds):
-    """将秒数转换为midform时间格式 hh:mm:ss.mmm"""
+# 辅助函数：将秒数转为 'mm:ss.mmm'（压缩小时，小时由 [ADD X H] 指示）
+def seconds_to_minsec_ms(seconds):
+    """将秒数转换为 mm:ss.mmm（忽略小时部分，由标记行承载）"""
     try:
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        remaining_seconds = seconds % 60
-        # 将小数秒转换为毫秒
+        within_hour = seconds % 3600
+        minutes = int(within_hour // 60)
+        remaining_seconds = within_hour % 60
         milliseconds = int((remaining_seconds - int(remaining_seconds)) * 1000)
-        return f"{hours:02}:{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
+        return f"{minutes:02}:{int(remaining_seconds):02}.{milliseconds:03}"
     except (ValueError, TypeError):
-        return "00:00:00.000"
+        return "00:00.000"
 
 # 辅助函数：读取JSON文件
 def read_json_file(filename):
@@ -37,26 +36,36 @@ if not isinstance(json_data, list):
     print("错误：JSON文件应该包含一个数组")
     exit(1)
 
-# 生成midform格式
+# 生成midform格式（压缩小时、插入小时标记、无前中括号）
 midform_lines = []
+
+# 顶部两行保留注释
+midform_lines.append("// A middle format for an APP about translation between .lrc & .srt file. It compresses the HH (hour) part of the timestamp.")
+midform_lines.append("// The hour sign [ADD X H] can't be ignored. If a timestamp crosses an hour sign, it will stay before the sign.")
+
+current_hour = None
 for item in json_data:
     if not isinstance(item, dict):
         continue
-    
-    # 提取时间信息
-    start_time = item.get('start', 0)
-    end_time = item.get('end', start_time + 1)  # 如果没有end时间，默认1秒后
+
+    start_time = float(item.get('start', 0))
+    end_time = float(item.get('end', start_time + 1))
     text = item.get('text', '')
-    
-    # 转换时间格式
-    start_midform = seconds_to_midform_time(start_time)
-    end_midform = seconds_to_midform_time(end_time)
-    
-    # 清理文本（去除多余的空白字符）
-    clean_text = re.sub(r'\s+', ' ', text.strip())
-    
-    if clean_text:  # 只添加非空文本
-        midform_lines.append(f"[{start_midform} - {end_midform}] {clean_text}")
+
+    # 该段所属小时
+    start_hour = int(start_time // 3600)
+    # 若小时变化，插入小时标记
+    if current_hour is None or start_hour != current_hour:
+        current_hour = start_hour
+        if current_hour > 0:
+            midform_lines.append(f"[ADD {current_hour} H]")
+
+    start_fmt = seconds_to_minsec_ms(start_time)
+    end_fmt = seconds_to_minsec_ms(end_time)
+
+    clean_text = re.sub(r'\s+', ' ', str(text).strip())
+    if clean_text:
+        midform_lines.append(f"{start_fmt}-{end_fmt}]{clean_text}")
 
 # 保存midform文件
 with open('cache/output1.midform', 'w', encoding='utf-8') as f:

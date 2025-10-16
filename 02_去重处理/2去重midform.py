@@ -24,8 +24,18 @@ def remove_duplicates_from_midform(input_file, output_file):
         if not line:  # 跳过空行
             continue
 
-        # 匹配midform时间戳格式 [hh:mm:ss.mmm - hh:mm:ss.mmm]
-        time_pattern = r'^\[(\d{1,2}):(\d{2}):(\d{2})\.(\d{3})\s*-\s*(\d{1,2}):(\d{2}):(\d{2})\.(\d{3})\]'
+        # 保留注释行（前两行以 // 开头）
+        if line.startswith('//'):
+            processed_lines.append(line)
+            continue
+
+        # 保留并透传小时标记，例如 [ADD 1 H]
+        if re.match(r"^\[ADD\s+\d+\s+H\]$", line):
+            processed_lines.append(line)
+            continue
+
+        # 匹配midform时间戳格式，可选小时：[HH:]mm:ss.mmm-[HH:]mm:ss.mmm]
+        time_pattern = r'^(?:\d{1,2}:)?\d{2}:\d{2}\.\d{3}-(?:\d{1,2}:)?\d{2}:\d{2}\.\d{3}\]'
         match = re.match(time_pattern, line)
 
         if match:
@@ -57,7 +67,7 @@ def remove_duplicates_from_midform(input_file, output_file):
                 content = content[:-1]  # 删除最后的逗号
 
             last_content = content  # 更新上一行内容
-            processed_lines.append(f"{time_stamp} {content}")  # 添加原始内容
+            processed_lines.append(f"{time_stamp}{content}")  # 添加原始内容
 
     # 写入到 output2.midform 文件
     with open(output_file, 'w', encoding='utf-8') as f:

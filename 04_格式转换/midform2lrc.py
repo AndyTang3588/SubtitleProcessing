@@ -31,27 +31,39 @@ def convert_midform_to_lrc_time(time_str):
 # 从 cache/output3.midform 文件中读取字幕
 input_data = read_input_file('cache/output3.midform')
 
-# 用正则表达式匹配midform格式的时间和字幕
-# 匹配格式: [hh:mm:ss.mmm - hh:mm:ss.mmm] text
-pattern = re.compile(r'\[(\d{1,2}:\d{2}:\d{2}\.\d{3})\s*-\s*(\d{1,2}:\d{2}:\d{2}\.\d{3})\]\s*(.+?)(?=\[\d{1,2}:\d{2}:\d{2}\.\d{3}\s*-\s*\d{1,2}:\d{2}:\d{2}\.\d{3}\]|$)', re.DOTALL)
-matches = pattern.findall(input_data)
-
-# 检查 matches 是否为空
-if not matches:
-    print("没有匹配到任何字幕")
-    exit(1)
-
-# 生成 LRC 格式
+lines = input_data.splitlines()
+current_hour = 0
 lrc_lines = []
-for start_time_str, end_time_str, subtitle in matches:
-    # 转换时间格式（LRC只需要开始时间）
-    start_time_lrc = convert_midform_to_lrc_time(f"[{start_time_str}]")
-    
-    if start_time_lrc:
-        lrc_lines.append(f"{start_time_lrc}{subtitle.strip()}")
+time_line_regex = re.compile(r'^(?:((?:\d{1,2}):)?)(\d{2}):(\d{2})\.(\d{3})-((?:\d{1,2}):)?(\d{2}):(\d{2})\.(\d{3})\](.*)$')
+
+for raw in lines:
+    s = raw.strip()
+    if not s:
+        continue
+    if s.startswith('//'):
+        continue
+    add = re.match(r'^\[ADD\s+(\d+)\s+H\]$', s)
+    if add:
+        current_hour = int(add.group(1))
+        continue
+    m = time_line_regex.match(s)
+    if not m:
+        continue
+    # 组：1 可选小时含冒号；2分；3秒；4毫秒；5可选小时含冒号；6分；7秒；8毫秒；9文本
+    sh = m.group(1)
+    sm = int(m.group(2))
+    ss = int(m.group(3))
+    sms = int(m.group(4))
+    text = m.group(9).strip()
+
+    start_hours = int(sh[:-1]) if sh else current_hour
+
+    # 转换到绝对分钟：小时标记×60 + 分钟
+    total_minutes = start_hours * 60 + sm
+    lrc_lines.append(f"[{total_minutes:02}:{ss:02}.{sms//10:02}]{text}")
 
 # 保存修改后的 LRC 文件
-with open('cache/output4.lrc', 'w', encoding='utf-8') as f:
+with open('cache/output3.lrc', 'w', encoding='utf-8') as f:
     f.write("\n".join(lrc_lines))
 
-print("处理完成，生成了 cache/output4.lrc 文件。")
+print("处理完成，生成了 cache/output3.lrc 文件。")
