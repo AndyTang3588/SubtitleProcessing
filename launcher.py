@@ -14,6 +14,13 @@ class SubtitleLauncher:
         self.root = root
         self.root.title("字幕处理工具集 Launcher")
         self.root.geometry("1200x700")
+        self.root.minsize(900, 600)
+
+        self.style = ttk.Style()
+        if "clam" in self.style.theme_names():
+            self.style.theme_use("clam")
+        self.style.configure("Card.TLabelframe", padding=(15, 10))
+        self.style.configure("Card.TLabelframe.Label", padding=(0, 6))
         
         # 设置变量
         self.selected_file = tk.StringVar()
@@ -47,25 +54,16 @@ class SubtitleLauncher:
         # 中部区域 - 步骤视图（可横向滚动）
         middle_frame = ttk.Frame(self.root)
         middle_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        steps_container = ttk.Frame(middle_frame, padding=(5, 5, 5, 10))
+        steps_container.pack(fill="both", expand=True)
+        for col in range(3):
+            steps_container.columnconfigure(col, weight=1, uniform="steps")
+        steps_container.rowconfigure(0, weight=1)
+        steps_container.rowconfigure(1, weight=1)
         
-        # 创建Canvas和Scrollbar
-        canvas = tk.Canvas(middle_frame, height=400)
-        scrollbar = ttk.Scrollbar(middle_frame, orient="horizontal", command=canvas.xview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(xscrollcommand=scrollbar.set)
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="bottom", fill="x")
-        
-        # 创建4个步骤格
-        self.create_step_frames(scrollable_frame)
+        # 创建步骤卡片
+        self.create_step_frames(steps_container)
         
         # 下部区域 - 生成转换结果
         bottom_frame = ttk.Frame(self.root)
@@ -82,60 +80,70 @@ class SubtitleLauncher:
         self.result_status = tk.StringVar(value="等待生成结果")
         ttk.Label(bottom_frame, textvariable=self.result_status, foreground="blue").pack(pady=5)
         
+    def _create_card(self, parent, title, row, column, columnspan=1):
+        card = ttk.LabelFrame(parent, text=title, style="Card.TLabelframe")
+        card.grid(row=row, column=column, columnspan=columnspan, padx=10, pady=5, sticky="nsew")
+        card.columnconfigure(0, weight=1)
+        return card
+
     def create_step_frames(self, parent):
-        # 步骤01 - 文本转字幕
-        step01_frame = ttk.LabelFrame(parent, text="步骤01 - 文本转字幕", width=220, height=350)
-        step01_frame.pack(side="left", padx=10, pady=5, fill="y")
-        step01_frame.pack_propagate(False)
-        
-        ttk.Label(step01_frame, text="选择版本:").pack(pady=5)
-        step01_combo = ttk.Combobox(step01_frame, textvariable=self.step01_version, 
-                                  values=["1json2midform.py (最新)", "1json2lrc&srt.py", "1txt2lrc&srt.py"],
-                                  state="readonly", width=15)
-        step01_combo.pack(pady=5)
-        
-        ttk.Button(step01_frame, text="运行", command=lambda: self.run_step("01")).pack(pady=10)
-        ttk.Label(step01_frame, textvariable=self.step01_status, foreground="blue").pack()
-        
-        # 步骤02 - 去重处理
-        step02_frame = ttk.LabelFrame(parent, text="步骤02 - 去重处理", width=220, height=350)
-        step02_frame.pack(side="left", padx=10, pady=5, fill="y")
-        step02_frame.pack_propagate(False)
-        
-        ttk.Label(step02_frame, text="选择版本:").pack(pady=5)
-        step02_combo = ttk.Combobox(step02_frame, textvariable=self.step02_version,
-                                  values=["2去重midform.py (最新)", "2去重srt.py"],
-                                  state="readonly", width=15)
-        step02_combo.pack(pady=5)
-        
-        ttk.Button(step02_frame, text="运行", command=lambda: self.run_step("02")).pack(pady=10)
-        ttk.Label(step02_frame, textvariable=self.step02_status, foreground="blue").pack()
-        
-        # 步骤03 - 时间调整
-        step03_frame = ttk.LabelFrame(parent, text="步骤03 - 时间调整", width=220, height=350)
-        step03_frame.pack(side="left", padx=10, pady=5, fill="y")
-        step03_frame.pack_propagate(False)
-        
-        ttk.Label(step03_frame, text="延时(毫秒):").pack(pady=5)
-        delay_entry = ttk.Entry(step03_frame, textvariable=self.delay_value, width=10)
-        delay_entry.pack(pady=5)
-        
-        ttk.Button(step03_frame, text="运行", command=lambda: self.run_step("03")).pack(pady=10)
-        ttk.Label(step03_frame, textvariable=self.step03_status, foreground="blue").pack()
-        
-        # 步骤04 - 格式转换
-        step04_frame = ttk.LabelFrame(parent, text="步骤04 - 格式转换", width=220, height=350)
-        step04_frame.pack(side="left", padx=10, pady=5, fill="y")
-        step04_frame.pack_propagate(False)
-        
-        ttk.Label(step04_frame, text="选择版本:").pack(pady=5)
-        step04_combo = ttk.Combobox(step04_frame, textvariable=self.step04_version,
-                                  values=["midform2srt.py (最新)", "midform2lrc.py", "lrc转srt_v2.py"],
-                                  state="readonly", width=15)
-        step04_combo.pack(pady=5)
-        
-        ttk.Button(step04_frame, text="运行", command=lambda: self.run_step("04")).pack(pady=10)
-        ttk.Label(step04_frame, textvariable=self.step04_status, foreground="blue").pack()
+        step01_frame = self._create_card(parent, "步骤01 - 文本转字幕", row=0, column=0)
+        self._build_step01(step01_frame)
+
+        step02_frame = self._create_card(parent, "步骤02 - 去重处理", row=0, column=1)
+        self._build_step02(step02_frame)
+
+        step03_frame = self._create_card(parent, "步骤03 - 时间调整", row=0, column=2)
+        self._build_step03(step03_frame)
+
+        step04_frame = self._create_card(parent, "步骤04 - 格式转换", row=1, column=0, columnspan=3)
+        self._build_step04(step04_frame)
+
+    def _build_step01(self, frame):
+        ttk.Label(frame, text="选择版本:").grid(row=0, column=0, sticky="w", pady=(0, 6))
+        step01_combo = ttk.Combobox(
+            frame,
+            textvariable=self.step01_version,
+            values=["1json2midform.py (最新)", "1json2lrc&srt.py", "1txt2lrc&srt.py"],
+            state="readonly",
+        )
+        step01_combo.grid(row=1, column=0, sticky="ew")
+
+        ttk.Button(frame, text="运行", command=lambda: self.run_step("01")).grid(row=2, column=0, sticky="ew", pady=(12, 6))
+        ttk.Label(frame, textvariable=self.step01_status, foreground="blue").grid(row=3, column=0, sticky="w")
+
+    def _build_step02(self, frame):
+        ttk.Label(frame, text="选择版本:").grid(row=0, column=0, sticky="w", pady=(0, 6))
+        step02_combo = ttk.Combobox(
+            frame,
+            textvariable=self.step02_version,
+            values=["2去重midform.py (最新)", "2去重srt.py"],
+            state="readonly",
+        )
+        step02_combo.grid(row=1, column=0, sticky="ew")
+
+        ttk.Button(frame, text="运行", command=lambda: self.run_step("02")).grid(row=2, column=0, sticky="ew", pady=(12, 6))
+        ttk.Label(frame, textvariable=self.step02_status, foreground="blue").grid(row=3, column=0, sticky="w")
+
+    def _build_step03(self, frame):
+        ttk.Label(frame, text="延时(毫秒):").grid(row=0, column=0, sticky="w", pady=(0, 6))
+        ttk.Entry(frame, textvariable=self.delay_value).grid(row=1, column=0, sticky="ew")
+
+        ttk.Button(frame, text="运行", command=lambda: self.run_step("03")).grid(row=2, column=0, sticky="ew", pady=(12, 6))
+        ttk.Label(frame, textvariable=self.step03_status, foreground="blue").grid(row=3, column=0, sticky="w")
+
+    def _build_step04(self, frame):
+        ttk.Label(frame, text="选择版本:").grid(row=0, column=0, sticky="w", pady=(0, 6))
+        step04_combo = ttk.Combobox(
+            frame,
+            textvariable=self.step04_version,
+            values=["midform2srt.py (最新)", "midform2lrc.py", "lrc转srt_v2.py"],
+            state="readonly",
+        )
+        step04_combo.grid(row=1, column=0, sticky="ew")
+
+        ttk.Button(frame, text="运行", command=lambda: self.run_step("04")).grid(row=2, column=0, sticky="ew", pady=(12, 6))
+        ttk.Label(frame, textvariable=self.step04_status, foreground="blue").grid(row=3, column=0, sticky="w")
         
     def select_file(self):
         file_path = filedialog.askopenfilename(
@@ -354,7 +362,18 @@ print("处理完成，生成了 cache/output2.srt 文件。")
                                                 greatgrandchild.configure(foreground="green")
                                                 break
             else:
-                getattr(self, f"step{step_num.zfill(2)}_status").set("Warning")
+                # 获取具体的错误信息
+                error_output = result.stderr.strip() if result.stderr.strip() else result.stdout.strip()
+                if error_output:
+                    # 截取错误信息的前100个字符，避免状态栏显示过长
+                    short_error = error_output[:100] + "..." if len(error_output) > 100 else error_output
+                    getattr(self, f"step{step_num.zfill(2)}_status").set(f"Warning: {short_error}")
+                    # 显示完整的错误信息对话框
+                    messagebox.showwarning("警告", f"步骤{step_num}执行时出现警告:\n\n{error_output}")
+                else:
+                    getattr(self, f"step{step_num.zfill(2)}_status").set("Warning: 未知错误")
+                    messagebox.showwarning("警告", f"步骤{step_num}执行时出现未知错误")
+                
                 # 设置黄色
                 for widget in self.root.winfo_children():
                     if isinstance(widget, ttk.Frame):
