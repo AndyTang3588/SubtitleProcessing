@@ -1,5 +1,8 @@
 # Cache directory for temporary files
 cache/
+userSetting.json
+*/__pycache__/
+
 
 # Output directory for generated files
 output/
