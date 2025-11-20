@@ -69,12 +69,12 @@ def remove_duplicates_from_midform(input_file, output_file):
             last_content = content  # 更新上一行内容
             processed_lines.append(f"{time_stamp}{content}")  # 添加原始内容
 
-    # 写入到 output2.midform 文件
+    # 写入到 outputA2.midform 文件
     with open(output_file, 'w', encoding='utf-8') as f:
         for processed_line in processed_lines:
             f.write(processed_line + "\n")
 
 # 使用函数处理文件
-remove_duplicates_from_midform('cache/output1.midform', 'cache/output2.midform')
+remove_duplicates_from_midform('cache/outputA1.midform', 'cache/outputA2.midform')
 
-print("处理完成，生成了 cache/output2.midform 文件。")
+print("处理完成，生成了 cache/outputA2.midform 文件。")

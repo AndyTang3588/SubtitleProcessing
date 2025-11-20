@@ -68,7 +68,7 @@ for item in json_data:
         midform_lines.append(f"{start_fmt}-{end_fmt}]{clean_text}")
 
 # 保存midform文件
-with open('cache/output1.midform', 'w', encoding='utf-8') as f:
+with open('cache/outputA1.midform', 'w', encoding='utf-8') as f:
     f.write("\n".join(midform_lines))
 
-print("处理完成，生成了 cache/output1.midform 文件。")
+print("处理完成，生成了 cache/outputA1.midform 文件。")

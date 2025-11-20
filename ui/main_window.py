@@ -22,8 +22,6 @@ class SubtitleLauncher:
         
         # 初始化语言相关变量
         self.current_lang = 'en'  # 默认语言
-        self.lang_options = [("中文", "zh"), ("English", "en"), ("Français", "fr")]
-        self.lang_display_map = {label: code for label, code in self.lang_options}
         self.lang_vars = {}  # 存放所有的 StringVar
         self._init_lang_vars()  # 初始化变量函数
 
@@ -38,12 +36,12 @@ class SubtitleLauncher:
         self.step01_version = tk.StringVar(value="1json2midform.py (最新)")
         self.step02_version = tk.StringVar(value="2去重midform.py (最新)")
         self.step04_version = tk.StringVar(value="midform2srt.py (最新)")
-        self.step01_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
-        self.step02_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
-        self.step03_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
-        self.step04_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
+        self.step01_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
+        self.step02_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
+        self.step03_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
+        self.step04_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
         self.output_to_original = tk.BooleanVar(value=False)
-        self.stepA1_message = tk.StringVar(value=self.lang_vars["MSG_SELECT_FILE"].get())
+        self.stepA1_message = tk.StringVar(value=LANG_DATA['en']['MSG_SELECT_FILE'])
         self.stepA1_run_btn = None
 
         self.settings_window = None
@@ -57,8 +55,8 @@ class SubtitleLauncher:
 
     # 初始化所有语言变量
     def _init_lang_vars(self):
-        # 遍历当前语言键值对，创建 StringVar
-        for key, value in LANG_DATA[self.current_lang].items():
+        # 遍历英文键值对，创建 StringVar
+        for key, value in LANG_DATA['en'].items():
             self.lang_vars[key] = tk.StringVar(value=value)
 
     # 窗口标题更新回调
@@ -68,7 +66,7 @@ class SubtitleLauncher:
     # 核心切换逻辑
     def switch_language(self, event=None):
         selected = self.lang_combo.get()
-        new_lang = self.lang_display_map.get(selected, self.current_lang)
+        new_lang = 'zh' if selected == "中文" else 'en'
         
         if new_lang == self.current_lang:
             return
@@ -101,10 +99,8 @@ class SubtitleLauncher:
         ttk.Button(top_frame, textvariable=self.lang_vars["BTN_SETTINGS"], bootstyle=SECONDARY, command=self.open_settings).pack(side="right")
         
         # 2. 设置按钮左边：语言下拉框
-        lang_labels = [label for label, _ in self.lang_options]
-        self.lang_combo = ttk.Combobox(top_frame, values=lang_labels, state="readonly", width=10)
-        default_index = next((i for i, (_, code) in enumerate(self.lang_options) if code == self.current_lang), 0)
-        self.lang_combo.current(default_index)
+        self.lang_combo = ttk.Combobox(top_frame, values=["中文", "English"], state="readonly", width=8)
+        self.lang_combo.current(1)  # 默认英文
         self.lang_combo.pack(side="right", padx=5)
         self.lang_combo.bind("<<ComboboxSelected>>", self.switch_language)
 
@@ -135,7 +131,7 @@ class SubtitleLauncher:
         ttk.Checkbutton(bottom_frame, textvariable=self.lang_vars["CHECK_OUTPUT"], variable=self.output_to_original).pack(side="left")
         ttk.Button(bottom_frame, textvariable=self.lang_vars["BTN_GENERATE"], bootstyle=PRIMARY, command=self.generate_results).pack(side="left", padx=10)
 
-        self.result_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT_RESULT"].get())
+        self.result_status = tk.StringVar(value=LANG_DATA['en']["STATUS_WAIT_RESULT"])
         ttk.Label(bottom_frame, textvariable=self.result_status, bootstyle=INFO).pack(pady=3)
 
     def _create_card(self, parent, title_key, row, column, columnspan=1):
@@ -355,7 +351,7 @@ class SubtitleLauncher:
                 script_name = version.split()[0]  # 例如 "1json2midform.py"
                 
                 # 执行脚本
-                script_path = Path(f"01_文本转字幕/{script_name}")
+                script_path = Path(f"src/A1_输入转字幕/{script_name}")
                 if not script_path.exists():
                     raise FileNotFoundError(f"Script not found: {script_path}")
                 
@@ -378,7 +374,7 @@ class SubtitleLauncher:
                 version = self.step02_version.get()
                 script_name = version.split()[0]  # 例如 "2去重midform.py"
                 
-                script_path = Path(f"02_去重处理/{script_name}")
+                script_path = Path(f"src/A2_去重处理/{script_name}")
                 if not script_path.exists():
                     raise FileNotFoundError(f"Script not found: {script_path}")
                 
@@ -419,7 +415,7 @@ class SubtitleLauncher:
                 if not script_name:
                     raise FileNotFoundError("No input file found in cache for time adjustment")
                 
-                script_path = Path(f"03_时间调整/{script_name}")
+                script_path = Path(f"src/A3_时间调整/{script_name}")
                 if not script_path.exists():
                     raise FileNotFoundError(f"Script not found: {script_path}")
                 
@@ -443,7 +439,7 @@ class SubtitleLauncher:
                 version = self.step04_version.get()
                 script_name = version.split()[0]  # 例如 "midform2srt.py"
                 
-                script_path = Path(f"04_格式转换/{script_name}")
+                script_path = Path(f"src/C1_格式转换/{script_name}")
                 if not script_path.exists():
                     raise FileNotFoundError(f"Script not found: {script_path}")
                 
@@ -470,7 +466,7 @@ class SubtitleLauncher:
         """生成转换结果：从 cache 目录复制最新优先级的文件到输出目录"""
         cache_dir = Path("cache")
         if not cache_dir.exists():
-            self.result_status.set(self.lang_vars["MSG_CACHE_NOT_FOUND"].get())
+            self.result_status.set("Error: cache directory not found")
             messagebox.showerror(
                 self.lang_vars["MSG_WARNING"].get(),
                 self.lang_vars["MSG_CACHE_NOT_FOUND"].get()
@@ -496,6 +492,7 @@ class SubtitleLauncher:
         # 按优先级查找文件（output3 > output2 > output1）
         # 对于每个优先级，复制所有找到的文件
         copied_files = []
+        found_priority = None
         
         for priority in [3, 2, 1]:
             priority_files = []
@@ -519,6 +516,7 @@ class SubtitleLauncher:
             # 如果找到文件，记录优先级并跳出（只处理最高优先级的文件）
             if priority_files:
                 copied_files.extend(priority_files)
+                found_priority = priority
                 break  # 只处理最高优先级的文件
         
         if copied_files:
@@ -526,13 +524,12 @@ class SubtitleLauncher:
             self.result_status.set(self.lang_vars["MSG_GENERATED_FILES"].get().format(count=count))
             # 显示成功消息（可选，如果文件太多可能太长）
             if count <= 3:
-                success_msg = self.lang_vars["MSG_GENERATED_FILES"].get().format(count=count)
                 messagebox.showinfo(
                     self.lang_vars["MSG_SUCCESS"].get(),
-                    success_msg + "\n" + "\n".join(copied_files)
+                    f"Successfully generated {count} file(s):\n" + "\n".join(copied_files)
                 )
         else:
-            self.result_status.set(self.lang_vars["MSG_NO_OUTPUT_FILES"].get())
+            self.result_status.set("No output files found in cache")
             messagebox.showwarning(
                 self.lang_vars["MSG_WARNING"].get(),
                 self.lang_vars["MSG_NO_OUTPUT_FILES"].get()
