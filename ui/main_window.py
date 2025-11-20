@@ -6,6 +6,10 @@ from ttkbootstrap.constants import *
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import threading, json
+import shutil
+import subprocess
+import sys
+import os
 from pathlib import Path
 from ui.tb_compat import TB_LabelFrame, TB_ScrolledFrame
 from ui.settings_window import SettingsWindow
@@ -18,6 +22,8 @@ class SubtitleLauncher:
         
         # 初始化语言相关变量
         self.current_lang = 'en'  # 默认语言
+        self.lang_options = [("中文", "zh"), ("English", "en"), ("Français", "fr")]
+        self.lang_display_map = {label: code for label, code in self.lang_options}
         self.lang_vars = {}  # 存放所有的 StringVar
         self._init_lang_vars()  # 初始化变量函数
 
@@ -32,12 +38,12 @@ class SubtitleLauncher:
         self.step01_version = tk.StringVar(value="1json2midform.py (最新)")
         self.step02_version = tk.StringVar(value="2去重midform.py (最新)")
         self.step04_version = tk.StringVar(value="midform2srt.py (最新)")
-        self.step01_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
-        self.step02_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
-        self.step03_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
-        self.step04_status = tk.StringVar(value=LANG_DATA['en']['STATUS_WAIT'])
+        self.step01_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
+        self.step02_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
+        self.step03_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
+        self.step04_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT"].get())
         self.output_to_original = tk.BooleanVar(value=False)
-        self.stepA1_message = tk.StringVar(value=LANG_DATA['en']['MSG_SELECT_FILE'])
+        self.stepA1_message = tk.StringVar(value=self.lang_vars["MSG_SELECT_FILE"].get())
         self.stepA1_run_btn = None
 
         self.settings_window = None
@@ -51,8 +57,8 @@ class SubtitleLauncher:
 
     # 初始化所有语言变量
     def _init_lang_vars(self):
-        # 遍历英文键值对，创建 StringVar
-        for key, value in LANG_DATA['en'].items():
+        # 遍历当前语言键值对，创建 StringVar
+        for key, value in LANG_DATA[self.current_lang].items():
             self.lang_vars[key] = tk.StringVar(value=value)
 
     # 窗口标题更新回调
@@ -62,7 +68,7 @@ class SubtitleLauncher:
     # 核心切换逻辑
     def switch_language(self, event=None):
         selected = self.lang_combo.get()
-        new_lang = 'zh' if selected == "中文" else 'en'
+        new_lang = self.lang_display_map.get(selected, self.current_lang)
         
         if new_lang == self.current_lang:
             return
@@ -95,8 +101,10 @@ class SubtitleLauncher:
         ttk.Button(top_frame, textvariable=self.lang_vars["BTN_SETTINGS"], bootstyle=SECONDARY, command=self.open_settings).pack(side="right")
         
         # 2. 设置按钮左边：语言下拉框
-        self.lang_combo = ttk.Combobox(top_frame, values=["中文", "English"], state="readonly", width=8)
-        self.lang_combo.current(1)  # 默认英文
+        lang_labels = [label for label, _ in self.lang_options]
+        self.lang_combo = ttk.Combobox(top_frame, values=lang_labels, state="readonly", width=10)
+        default_index = next((i for i, (_, code) in enumerate(self.lang_options) if code == self.current_lang), 0)
+        self.lang_combo.current(default_index)
         self.lang_combo.pack(side="right", padx=5)
         self.lang_combo.bind("<<ComboboxSelected>>", self.switch_language)
 
@@ -127,7 +135,7 @@ class SubtitleLauncher:
         ttk.Checkbutton(bottom_frame, textvariable=self.lang_vars["CHECK_OUTPUT"], variable=self.output_to_original).pack(side="left")
         ttk.Button(bottom_frame, textvariable=self.lang_vars["BTN_GENERATE"], bootstyle=PRIMARY, command=self.generate_results).pack(side="left", padx=10)
 
-        self.result_status = tk.StringVar(value=LANG_DATA['en']["STATUS_WAIT_RESULT"])
+        self.result_status = tk.StringVar(value=self.lang_vars["STATUS_WAIT_RESULT"].get())
         ttk.Label(bottom_frame, textvariable=self.result_status, bootstyle=INFO).pack(pady=3)
 
     def _create_card(self, parent, title_key, row, column, columnspan=1):
@@ -317,15 +325,218 @@ class SubtitleLauncher:
         threading.Thread(target=self._execute_step, args=(n,), daemon=True).start()
 
     def _execute_step(self, n):
-        # 保留你原逻辑，不改...
-        getattr(self, f"step{n}_status").set(self.lang_vars["STATUS_RUNNING"].get())
-        # 省略执行脚本细节（与你原来完全一致）
-        # 这里只模拟成功
-        self.root.after(500, lambda: getattr(self, f"step{n}_status").set(self.lang_vars["STATUS_SUCCESS"].get()))
+        """执行处理步骤"""
+        # 更新状态为运行中
+        status_var = getattr(self, f"step{n}_status")
+        self.root.after(0, lambda: status_var.set(self.lang_vars["STATUS_RUNNING"].get()))
+        
+        try:
+            # 确保 cache 目录存在
+            cache_dir = Path("cache")
+            cache_dir.mkdir(exist_ok=True)
+            
+            # 步骤 01: 文本转字幕
+            if n == "01":
+                # 复制输入文件到 cache/input.json
+                input_file = Path(self.selected_file.get())
+                if not input_file.exists():
+                    raise FileNotFoundError(f"Input file not found: {input_file}")
+                
+                # 根据文件扩展名决定如何处理
+                if input_file.suffix.lower() == '.json':
+                    shutil.copy2(input_file, cache_dir / "input.json")
+                else:
+                    # 对于非 JSON 文件，可能需要其他处理
+                    # 这里先只支持 JSON
+                    raise ValueError("Only JSON files are supported for step 01")
+                
+                # 获取选择的版本
+                version = self.step01_version.get()
+                script_name = version.split()[0]  # 例如 "1json2midform.py"
+                
+                # 执行脚本
+                script_path = Path(f"01_文本转字幕/{script_name}")
+                if not script_path.exists():
+                    raise FileNotFoundError(f"Script not found: {script_path}")
+                
+                result = subprocess.run(
+                    [sys.executable, str(script_path)],
+                    cwd=Path.cwd(),
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8'
+                )
+                
+                if result.returncode == 0:
+                    self.root.after(0, lambda: status_var.set(self.lang_vars["STATUS_SUCCESS"].get()))
+                else:
+                    error_msg = result.stderr or result.stdout or "Unknown error"
+                    self.root.after(0, lambda: status_var.set(f"Error: {error_msg[:50]}"))
+            
+            # 步骤 02: 去重处理
+            elif n == "02":
+                version = self.step02_version.get()
+                script_name = version.split()[0]  # 例如 "2去重midform.py"
+                
+                script_path = Path(f"02_去重处理/{script_name}")
+                if not script_path.exists():
+                    raise FileNotFoundError(f"Script not found: {script_path}")
+                
+                result = subprocess.run(
+                    [sys.executable, str(script_path)],
+                    cwd=Path.cwd(),
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8'
+                )
+                
+                if result.returncode == 0:
+                    self.root.after(0, lambda: status_var.set(self.lang_vars["STATUS_SUCCESS"].get()))
+                else:
+                    error_msg = result.stderr or result.stdout or "Unknown error"
+                    self.root.after(0, lambda: status_var.set(f"Error: {error_msg[:50]}"))
+            
+            # 步骤 03: 时间调整
+            elif n == "03":
+                delay_ms = int(self.delay_value.get() or "0")
+                
+                # 检测 cache 目录中的文件类型，按优先级选择
+                cache_dir = Path("cache")
+                script_name = None
+                
+                # 按优先级查找文件（output3 > output2 > output1）
+                for priority in [2, 1]:  # 注意：脚本通常从 output2 读取
+                    if (cache_dir / f"output{priority}.midform").exists():
+                        script_name = "3延迟midform.py"
+                        break
+                    elif (cache_dir / f"output{priority}.lrc").exists():
+                        script_name = "3延时lrc.py"
+                        break
+                    elif (cache_dir / f"output{priority}.srt").exists():
+                        script_name = "3延时srt.py"
+                        break
+                
+                if not script_name:
+                    raise FileNotFoundError("No input file found in cache for time adjustment")
+                
+                script_path = Path(f"03_时间调整/{script_name}")
+                if not script_path.exists():
+                    raise FileNotFoundError(f"Script not found: {script_path}")
+                
+                # 执行脚本，传递延迟值作为命令行参数
+                result = subprocess.run(
+                    [sys.executable, str(script_path), str(delay_ms)],
+                    cwd=Path.cwd(),
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8'
+                )
+                
+                if result.returncode == 0:
+                    self.root.after(0, lambda: status_var.set(self.lang_vars["STATUS_SUCCESS"].get()))
+                else:
+                    error_msg = result.stderr or result.stdout or "Unknown error"
+                    self.root.after(0, lambda: status_var.set(f"Error: {error_msg[:50]}"))
+            
+            # 步骤 04: 格式转换
+            elif n == "04":
+                version = self.step04_version.get()
+                script_name = version.split()[0]  # 例如 "midform2srt.py"
+                
+                script_path = Path(f"04_格式转换/{script_name}")
+                if not script_path.exists():
+                    raise FileNotFoundError(f"Script not found: {script_path}")
+                
+                result = subprocess.run(
+                    [sys.executable, str(script_path)],
+                    cwd=Path.cwd(),
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8'
+                )
+                
+                if result.returncode == 0:
+                    self.root.after(0, lambda: status_var.set(self.lang_vars["STATUS_SUCCESS"].get()))
+                else:
+                    error_msg = result.stderr or result.stdout or "Unknown error"
+                    self.root.after(0, lambda: status_var.set(f"Error: {error_msg[:50]}"))
+            
+        except Exception as e:
+            error_msg = str(e)[:100]
+            self.root.after(0, lambda: status_var.set(f"Error: {error_msg}"))
 
     # ========== Output ==========
     def generate_results(self):
-        self.result_status.set(self.lang_vars["MSG_GENERATED_FILES"].get().format(count=0))
+        """生成转换结果：从 cache 目录复制最新优先级的文件到输出目录"""
+        cache_dir = Path("cache")
+        if not cache_dir.exists():
+            self.result_status.set(self.lang_vars["MSG_CACHE_NOT_FOUND"].get())
+            messagebox.showerror(
+                self.lang_vars["MSG_WARNING"].get(),
+                self.lang_vars["MSG_CACHE_NOT_FOUND"].get()
+            )
+            return
+        
+        # 支持的输出文件扩展名
+        supported_extensions = ['.lrc', '.srt', '.midform', '.txt']
+        
+        # 确定输出目录
+        if self.output_to_original.get():
+            # 输出到原文件目录
+            if self.selected_file.get():
+                output_dir = Path(self.selected_file.get()).parent
+            else:
+                output_dir = Path("output")
+                output_dir.mkdir(exist_ok=True)
+        else:
+            # 输出到 output 目录
+            output_dir = Path("output")
+            output_dir.mkdir(exist_ok=True)
+        
+        # 按优先级查找文件（output3 > output2 > output1）
+        # 对于每个优先级，复制所有找到的文件
+        copied_files = []
+        
+        for priority in [3, 2, 1]:
+            priority_files = []
+            for ext in supported_extensions:
+                cache_file = cache_dir / f"output{priority}{ext}"
+                if cache_file.exists() and cache_file.is_file():
+                    # 生成输出文件名
+                    if self.selected_file.get():
+                        original_name = Path(self.selected_file.get()).stem
+                        output_file = output_dir / f"{original_name}{ext}"
+                    else:
+                        output_file = output_dir / f"output{priority}{ext}"
+                    
+                    try:
+                        # 复制文件
+                        shutil.copy2(cache_file, output_file)
+                        priority_files.append(str(output_file))
+                    except Exception as e:
+                        print(f"Error copying {cache_file}: {e}")
+            
+            # 如果找到文件，记录优先级并跳出（只处理最高优先级的文件）
+            if priority_files:
+                copied_files.extend(priority_files)
+                break  # 只处理最高优先级的文件
+        
+        if copied_files:
+            count = len(copied_files)
+            self.result_status.set(self.lang_vars["MSG_GENERATED_FILES"].get().format(count=count))
+            # 显示成功消息（可选，如果文件太多可能太长）
+            if count <= 3:
+                success_msg = self.lang_vars["MSG_GENERATED_FILES"].get().format(count=count)
+                messagebox.showinfo(
+                    self.lang_vars["MSG_SUCCESS"].get(),
+                    success_msg + "\n" + "\n".join(copied_files)
+                )
+        else:
+            self.result_status.set(self.lang_vars["MSG_NO_OUTPUT_FILES"].get())
+            messagebox.showwarning(
+                self.lang_vars["MSG_WARNING"].get(),
+                self.lang_vars["MSG_NO_OUTPUT_FILES"].get()
+            )
 
     # ========== Settings Window ==========
     def load_user_setting(self):

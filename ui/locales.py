@@ -45,6 +45,8 @@ LANG_DATA = {
         "MSG_SUCCESS": "成功",
         "MSG_SETTINGS_SAVED": "设置已保存",
         "MSG_GENERATED_FILES": "成功生成 {count} 个文件",
+        "MSG_CACHE_NOT_FOUND": "未找到 cache 目录，请先运行处理步骤",
+        "MSG_NO_OUTPUT_FILES": "未在 cache 目录中找到输出文件，请先运行处理步骤",
         
         # 文件对话框
         "DIALOG_SELECT_FILE": "选择字幕文件",
@@ -107,6 +109,8 @@ LANG_DATA = {
         "MSG_SUCCESS": "Success",
         "MSG_SETTINGS_SAVED": "Settings saved",
         "MSG_GENERATED_FILES": "Successfully generated {count} files",
+        "MSG_CACHE_NOT_FOUND": "Cache directory not found. Please run processing steps first.",
+        "MSG_NO_OUTPUT_FILES": "No output files found in cache directory. Please run processing steps first.",
         
         # File dialogs
         "DIALOG_SELECT_FILE": "Select subtitle file",
@@ -169,6 +173,8 @@ LANG_DATA = {
         "MSG_SUCCESS": "Succès",
         "MSG_SETTINGS_SAVED": "Paramètres enregistrés",
         "MSG_GENERATED_FILES": "Généré {count} fichier(s)",
+        "MSG_CACHE_NOT_FOUND": "Dossier cache introuvable. Veuillez d'abord exécuter une étape de traitement.",
+        "MSG_NO_OUTPUT_FILES": "Aucun fichier de sortie trouvé dans le dossier cache. Veuillez exécuter une étape de traitement.",
         
         # Dialogue de fichiers
         "DIALOG_SELECT_FILE": "Choisir un fichier de sous-titres",
